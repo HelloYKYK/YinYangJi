@@ -3,7 +3,12 @@ import 'dart:convert';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-final  arr = [1, 1, 1, 1, 1, 1];
+import 'package:yinyangji/EventBus.dart';
+
+var arr = [1, 1, 1, 1, 1, 1];
+var invisible = [true, true, true, true, true, true];
+var _active = [false, false, false, false, false, false];
+
 class YinYang extends StatelessWidget {
   const YinYang({
     Key key,
@@ -17,13 +22,30 @@ class YinYang extends StatelessWidget {
   Widget build(BuildContext context) {
     return new Scaffold(
         appBar: new AppBar(
-          title: new Text(title),
+//centerTitle: new Text("阴阳记"),
+          title: new Text("阴阳记"),
+          actions: <Widget>[
+            new GestureDetector(
+                //按钮点击时分发通知
+                onTap: () => onpress(),
+                child: new Container(
+                  padding: EdgeInsets.only(top: 15,right: 10),
+                  child: new Text("重置"),
+                ))
+          ],
+//          actions: <Widget>[
+//            new Container(
+//                alignment: Alignment.centerRight,
+//                child: ),
+//          ],
         ),
-        body: _buildBody());
+        body: _buildBody(context));
   }
 
-  Widget _buildBody() {
+  Widget _buildBody(BuildContext context) {
+    var switchYinAndYangRoute = new SwitchYinAndYangRoute(0);
     return new Container(
+        padding: const EdgeInsets.only(left: 50.0),
         width: 400,
         height: 400,
         child: new Column(
@@ -33,11 +55,15 @@ class YinYang extends StatelessWidget {
             new SwitchYinAndYangRoute(3),
             new SwitchYinAndYangRoute(2),
             new SwitchYinAndYangRoute(1),
-            new SwitchYinAndYangRoute(0),
+            switchYinAndYangRoute,
             new StateText(),
           ],
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         ));
+  }
+
+  onpress() {
+    bus.emit("reset", "reset");
   }
 }
 
@@ -73,15 +99,25 @@ class _StateText extends State<StateText> {
 
   @override
   Widget build(BuildContext context) {
-    return new Column(
-      children: <Widget>[
-        RaisedButton(
-          child: Text('卦序:'),
-          onPressed: () => onPress(),
-        ),
-        Text(index)
-      ],
-    );
+    return new Container(
+        alignment: Alignment.center, //居中
+        child: new Row(
+          children: <Widget>[
+            Expanded(
+                child: new Container(
+              alignment: Alignment.center,
+              child: RaisedButton(
+                child: Text('卦序:'),
+                onPressed: () => onPress(),
+              ),
+            )),
+            Expanded(
+                child: new Container(
+              alignment: Alignment.center,
+              child: Text(index),
+            )),
+          ],
+        ));
   }
 }
 
@@ -114,7 +150,8 @@ class _SwitchYinAndYangState extends State<SwitchYinAndYangRoute> {
       children: <Widget>[
         new SwitchAndCheckBoxTestRoute(),
         new TapboxA(yinYang),
-        new SwitchAndCheckBoxTestRoute(),
+
+//        new SwitchAndCheckBoxTestRoute(),
       ],
     );
   }
@@ -152,22 +189,34 @@ class TapboxA extends StatefulWidget {
   _TabpbosAState createState() => new _TabpbosAState(yinYang);
 }
 
-
-
 ///内部管理自身State
 class _TabpbosAState extends State<TapboxA> {
-  bool _active = false;
+//  bool _active = false;
+//  bool _visible;
+
   var yinYang;
+  var index;
 
   _TabpbosAState(i) {
     yinYang = i;
+    index = i;
+    bus.on("reset", (arg) {
+      setState(() {
+        arr = [1, 1, 1, 1, 1, 1];
+        invisible = [true, true, true, true, true, true];
+        _active = [false, false, false, false, false, false];
+        ;
+      });
+    });
+//     invisible[i];
   }
 
   void _handleTap() {
     setState(() {
-      _active = !_active;
+      _active[index] = !_active[index];
+      invisible[index] = false;
     });
-    arr[yinYang] = _active ? 0 : 1;
+    arr[yinYang] = _active[index] ? 0 : 1;
   }
 
   @override
@@ -181,38 +230,53 @@ class _TabpbosAState extends State<TapboxA> {
             new Container(
                 child: new Center(
                   child: new Text(
-                    _active ? '阴' : '阳',
+                    _active[index] ? '阴' : '阳',
                     style: new TextStyle(
                         fontSize: 16.0,
-                        color: _active ? Colors.white : Colors.black),
+                        color: _active[index] ? Colors.white : Colors.black),
                   ),
                 ),
                 width: 50.0,
                 height: 50.0,
                 decoration: new BoxDecoration(
-                  color: _active ? Colors.black : Colors.white,
+                  color: _active[index] ? Colors.black : Colors.white,
                 )),
-            !_active
+            !_active[index]
                 ? Padding(
+                    //长横
                     padding: const EdgeInsets.only(left: 8.0),
-                    child: new Container(
-                        width: 168, height: 10, color: Colors.black))
-                : new Row(
-                    children: <Widget>[
-                      Padding(
-                          padding: const EdgeInsets.only(left: 8.0),
-                          child: new Container(
-                              width: 80, height: 10, color: Colors.black)),
-                      Padding(
-                          padding: const EdgeInsets.only(left: 8.0),
-                          child: new Container(
-                              width: 80, height: 10, color: Colors.black)),
-                    ],
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  )
+                    child: new Offstage(
+                        offstage: invisible[index],
+                        child: new Container(
+                            width: 168, height: 10, color: Colors.black)))
+                : new Offstage(
+                    offstage: invisible[index],
+                    child: new Row(
+                      //断横
+                      children: <Widget>[
+                        Padding(
+                            padding: const EdgeInsets.only(left: 8.0),
+                            child: new Container(
+                                width: 80, height: 10, color: Colors.black)),
+                        Padding(
+                            padding: const EdgeInsets.only(left: 8.0),
+                            child: new Container(
+                                width: 80, height: 10, color: Colors.black)),
+                      ],
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    ),
+                  ),
+//            new RaisedButton( child: Text('重置'),
+//              onPressed: () => onReset(),)
           ],
         ));
   }
+
+//  void reset() {
+//    setState(() {
+//
+//    });
+//  }
 }
 
 Future<String> loadAsset() async {
@@ -233,4 +297,10 @@ class GBean {
       name: json['name'],
     );
   }
+}
+
+class MyNotification extends Notification {
+  MyNotification(this.msg);
+
+  final String msg;
 }
